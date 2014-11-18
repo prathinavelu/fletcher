@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.counties {
+  fill: none;
+}
+
+.states {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+}
+
+.q0-9 { fill:rgb(247,251,255); }
+.q1-9 { fill:rgb(222,235,247); }
+.q2-9 { fill:rgb(198,219,239); }
+.q3-9 { fill:rgb(158,202,225); }
+.q4-9 { fill:rgb(107,174,214); }
+.q5-9 { fill:rgb(66,146,198); }
+.q6-9 { fill:rgb(33,113,181); }
+.q7-9 { fill:rgb(8,81,156); }
+.q8-9 { fill:rgb(8,48,107); }
+
+</style>
+<body>
+
+<div id="buttons">
+<button id="cluster0">Cluster 0</button>
+<button id="cluster1">Cluster 1</button>
+<button id="cluster2">Cluster 2</button>
+<button id="cluster3">Cluster 3</button>
+</div>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/queue.v1.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script>
+
+var width = 960,
+    height = 600;
+
+var rateById = d3.map();
+
+
+var quantize = d3.scale.quantize()
+    .domain([0, 6])
+    .range(d3.range(9).map(function(i) { return "q" + i + "-9"; }));
+
+var projection = d3.geo.albersUsa()
+    .scale(1280)
+    .translate([width / 2, height / 2]);
+
+var path = d3.geo.path()
+    .projection(projection);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+
+
+d3.select("#cluster0")
+    .on("click", function(d,i) {
+      queue()
+        .defer(d3.json, "us.json")
+        .defer(d3.csv, "Cluster0States.csv", function(d) {rateById.set(d.id, d.rate_adjusted); })
+        .await(ready);
+    })
+
+d3.select("#cluster1")
+    .on("click", function(d,i) {
+        queue()
+        .defer(d3.json, "us.json")
+        .defer(d3.csv, "Cluster1States.csv", function(d) {rateById.set(d.id, d.rate_adjusted); })
+        .await(ready);
+    })
+    
+d3.select("#cluster2")
+    .on("click", function(d,i) {
+        rateById.forEach(function(key) { rateById.remove(key); });
+        queue()
+        .defer(d3.json, "us.json")
+        .defer(d3.csv, "Cluster2States.csv", function(d) {rateById.set(d.id, d.rate_adjusted); })
+        .await(ready);
+    })
+    
+d3.select("#cluster3")
+    .on("click", function(d,i) {
+        queue()
+        .defer(d3.json, "us.json")
+        .defer(d3.csv, "Cluster3States.csv", function(d) {rateById.set(d.id, d.rate_adjusted); })
+        .await(ready);
+    })
+    
+
+function ready(error, us) {
+  svg.selectAll("path").remove();
+  svg.append("g")
+      .attr("class", "states")
+      .selectAll("path")
+      .data(topojson.feature(us, us.objects.states).features)
+      .enter().append("path")
+      .attr("class", function(d) {console.log(rateById.get(d.id)); return quantize(rateById.get(d.id)); })
+      .attr("d", path);
+
+  svg.append("path")
+      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+      .attr("class", "states")
+      .attr("d", path);
+  
+}
+
+d3.select(self.frameElement).style("height", height + "px");
+
+</script>
